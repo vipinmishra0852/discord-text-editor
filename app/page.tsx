@@ -100,51 +100,129 @@ export default function HomePage() {
   const handleInput = () => {
     if (!editableRef.current) return;
 
+    // Save current cursor position
     const selection = window.getSelection();
     if (!selection || selection.rangeCount === 0) return;
 
     const range = selection.getRangeAt(0);
-    const preCaretRange = range.cloneRange();
-    preCaretRange.selectNodeContents(editableRef.current);
-    preCaretRange.setEnd(range.startContainer, range.startOffset);
-    const cursorPosition = preCaretRange.toString().length; // Get character count before cursor
+    const cursorPosition = getCursorPosition(editableRef.current, range);
 
-    // Sanitize contentEditable
-    const base = editableRef.current.innerHTML.replace(
-      /<(\/?(br|span|span class="ansi-[0-9]*"))>/g,
-      "[$1]"
-    );
+    // Get the current HTML content
+    const currentHTML = editableRef.current.innerHTML;
 
-    if (base.includes("<") || base.includes(">")) {
-      const cleaned = base
-        .replace(/<.*?>/g, "")
-        .replace(/[<>]/g, "")
-        .replace(/\[(\/?(br|span|span class="ansi-[0-9]*"))\]/g, "<$1>");
-      editableRef.current.innerHTML = cleaned;
+    // Clean the HTML while preserving allowed tags and formatting
+    const cleanHTML = cleanContentEditableHTML(currentHTML);
+
+    // Only update if there are changes to prevent infinite loops
+    if (cleanHTML !== currentHTML) {
+      editableRef.current.innerHTML = cleanHTML;
+      setHtmlContent(cleanHTML);
     }
 
     // Restore cursor position
-    const newRange = document.createRange();
+    restoreCursorPosition(editableRef.current, cursorPosition);
+  };
+
+  // Helper function to get cursor position
+  const getCursorPosition = (element: HTMLElement, range: Range): number => {
+    const preCaretRange = range.cloneRange();
+    preCaretRange.selectNodeContents(element);
+    preCaretRange.setEnd(range.endContainer, range.endOffset);
+    return preCaretRange.toString().length;
+  };
+
+  // Helper function to restore cursor position
+  const restoreCursorPosition = (element: HTMLElement, position: number) => {
+    const selection = window.getSelection();
+    if (!selection) return;
+
+    const range = document.createRange();
     const walker = document.createTreeWalker(
-      editableRef.current,
+      element,
       NodeFilter.SHOW_TEXT,
       null
     );
-    let offset = cursorPosition;
-    let node: Text | null = null;
-    while (walker.nextNode() && offset > 0) {
-      node = walker.currentNode as Text;
-      offset -= node.length;
+
+    let currentPos = 0;
+    let targetNode: Text | null = null;
+    let targetOffset = 0;
+
+    while (walker.nextNode()) {
+      const node = walker.currentNode as Text;
+      const nodeLength = node.length;
+
+      if (currentPos + nodeLength >= position) {
+        targetNode = node;
+        targetOffset = position - currentPos;
+        break;
+      }
+
+      currentPos += nodeLength;
     }
 
-    if (node) {
-      newRange.setStart(node, Math.max(0, offset));
-      newRange.setEnd(node, Math.max(0, offset));
+    if (targetNode) {
+      range.setStart(targetNode, targetOffset);
+      range.collapse(true);
       selection.removeAllRanges();
-      selection.addRange(newRange);
+      selection.addRange(range);
+    } else if (element.childNodes.length > 0) {
+      // Fallback to end of content if position is beyond text length
+      const lastNode = element.lastChild!;
+      if (lastNode.nodeType === Node.TEXT_NODE) {
+        range.setStart(lastNode, (lastNode as Text).length);
+      } else {
+        range.setStartAfter(lastNode);
+      }
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
     }
+  };
 
-    setHtmlContent(editableRef.current.innerHTML);
+  // Helper function to clean HTML while preserving allowed formatting
+  const cleanContentEditableHTML = (html: string): string => {
+    // Create a temporary div to parse the HTML
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = html;
+
+    // Function to recursively clean nodes
+    const cleanNode = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE) {
+        return;
+      }
+
+      // Remove disallowed elements and attributes
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        const element = node as HTMLElement;
+
+        // Only keep allowed tags (span with ansi classes, br)
+        if (element.tagName !== "SPAN" && element.tagName !== "BR") {
+          // Replace with text content
+          const textNode = document.createTextNode(element.textContent || "");
+          node.parentNode?.replaceChild(textNode, node);
+          return;
+        }
+
+        // For spans, only keep allowed classes
+        if (element.tagName === "SPAN") {
+          const classMatch = element.className.match(/ansi-\d+/);
+          if (!classMatch) {
+            // Replace with text content if no valid ansi class
+            const textNode = document.createTextNode(element.textContent || "");
+            node.parentNode?.replaceChild(textNode, node);
+            return;
+          }
+        }
+
+        // Clean child nodes
+        Array.from(node.childNodes).forEach(cleanNode);
+      }
+    };
+
+    // Clean all child nodes
+    Array.from(tempDiv.childNodes).forEach(cleanNode);
+
+    return tempDiv.innerHTML;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
