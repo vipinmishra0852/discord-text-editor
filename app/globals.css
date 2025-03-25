@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.ansi-1 { font-weight:700; text-decoration:none; }
+.ansi-4 { font-weight:500; text-decoration:underline; }
+
+.ansi-30 { color: #4f545c; }
+.ansi-31 { color: #dc322f; }
+.ansi-32 { color: #859900; }
+.ansi-33 { color: #b58900; }
+.ansi-34 { color: #268bd2; }
+.ansi-35 { color: #d33682; }
+.ansi-36 { color: #2aa198; }
+.ansi-37 { color: #ffffff; }
+
+.ansi-30-bg { background-color: #4f545c; }
+.ansi-31-bg { background-color: #dc322f; }
+.ansi-32-bg { background-color: #859900; }
+.ansi-33-bg { background-color: #b58900; }
+.ansi-34-bg { background-color: #268bd2; }
+.ansi-35-bg { background-color: #d33682; }
+.ansi-36-bg { background-color: #2aa198; }
+.ansi-37-bg { background-color: #ffffff; }
+
+.ansi-40 { background-color: #002b36; }
+.ansi-41 { background-color: #cb4b16; }
+.ansi-42 { background-color: #586e75; }
+.ansi-43 { background-color: #657b83; }
+.ansi-44 { background-color: #839496; }
+.ansi-45 { background-color: #6c71c4; }
+.ansi-46 { background-color: #93a1a1; }
+.ansi-47 { background-color: #fdf6e3; }
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 0 0% 3.9%;
+    --radius: 0.5rem;
+  }
+}
